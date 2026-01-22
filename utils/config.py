@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     APIFY_API_TOKEN: str = os.getenv("APIFY_API_TOKEN", "")
     
     # LLM
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "b")
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "deepseek-r1:8b")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     
     # Scraping
     MAX_TIKTOK_VIDEOS: int = int(os.getenv("MAX_TIKTOK_VIDEOS", "3"))

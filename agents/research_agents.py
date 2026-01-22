@@ -13,7 +13,13 @@ def create_trend_scout_agent():
         on social media platforms. You monitor TikTok and Pinterest daily to spot 
         products that are gaining traction. You focus on products with high engagement, 
         viral potential, and clear dropshipping viability. You prioritize lightweight 
-        products under 5kg to ensure reasonable shipping costs.""",
+        products under 5kg to ensure reasonable shipping costs.
+        
+        IMPORTANT: When using tools, always pass a SINGLE dictionary object with 
+        the required fields. Never pass a list of objects. For example:
+        - CORRECT: {"keywords": ["home gadgets"], "max_videos": 3}
+        - WRONG: [{"keywords": ["home gadgets"], "max_videos": 3}]
+        """,
         tools=[TikTokScraperTool(), PinterestScraperTool()],
         llm=get_ollama_llm(),
         verbose=True,

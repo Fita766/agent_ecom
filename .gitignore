@@ -78,3 +78,20 @@ logs/
 # CrewAI / LangChain
 .langchain/
 .crewai/
+
+# Datasets (trop volumineux pour Git)
+datasets/
+
+# Modèles ML téléchargés
+models/sentiment/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Cache et embeddings RAG
+*.index
+*.faiss
+chroma_db/
+vectorstores/

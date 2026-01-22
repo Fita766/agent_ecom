@@ -1,0 +1,26 @@
+# Dépendances RAG supplémentaires (à ajouter au requirements.txt)
+
+# Core RAG
+sentence-transformers>=2.3.0
+chromadb>=0.4.22
+faiss-cpu>=1.7.4  # ou faiss-gpu si GPU disponible
+
+# ML Models
+transformers>=4.35.0
+torch>=2.1.0
+accelerate>=0.25.0
+
+# Image Generation (optionnel - lourd)
+diffusers>=0.25.0
+safetensors>=0.4.0
+
+# Datasets
+kaggle>=1.5.0
+
+# Time Series Forecasting
+prophet>=1.1.0
+statsmodels>=0.14.0
+
+# Utilitaires
+tqdm>=4.66.0
+scikit-learn>=1.3.0

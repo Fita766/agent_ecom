@@ -17,13 +17,28 @@ class PinterestScraperTool(BaseTool):
     name: str = "Pinterest Trend Scraper"
     description: str = """
     Scrape Pinterest to find trending products based on keywords.
+    
+    IMPORTANT: Call this tool with a SINGLE dictionary object containing:
+    - keywords: array of strings (e.g., ["home gadgets", "beauty products"])
+    - max_pins: integer (default: 5)
+    
+    Example correct usage:
+    {"keywords": ["home gadgets", "beauty products"], "max_pins": 5}
+    
     Returns pin URLs, save counts, repins.
     Use this to identify popular products on Pinterest.
     """
     args_schema: Type[BaseModel] = PinterestScraperInput
     
-    def _run(self, keywords: List[str], max_pins: int = 5) -> List[Dict[str, Any]]:
+    def _run(self, keywords: List[str] = None, max_pins: int = 5) -> List[Dict[str, Any]]:
         """Search Pinterest for trending products"""
+        # Validation
+        if not keywords:
+            return [{"error": "Keywords are required. Provide a list of keywords to search."}]
+        
+        if not isinstance(keywords, list):
+            keywords = [str(keywords)]
+        
         results: List[Dict[str, Any]] = []
         ua = UserAgent()
 

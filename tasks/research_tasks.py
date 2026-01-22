@@ -12,27 +12,33 @@ def create_trend_discovery_task():
         description="""
         Search TikTok and Pinterest for trending products with viral potential.
         
-        Search for products in these categories:
-        - Home & Garden gadgets
-        - Beauty & Personal Care
-        - Pet accessories
-        - Fashion accessories
-        - Kitchen tools
-        - Tech gadgets under 5kg
+        INSTRUCTIONS FOR USING TOOLS:
+        1. Use "TikTok Trend Scraper" tool with keywords from these categories:
+           - Home & Garden gadgets
+           - Beauty & Personal Care
+           - Pet accessories
+           - Fashion accessories
+           - Kitchen tools
+           - Tech gadgets under 5kg
         
-        For each product found:
-        1. Extract product name and description
-        2. Get engagement metrics (views, likes, shares, saves)
-        3. Get video/pin URLs
-        4. Estimate product category
+        2. Use "Pinterest Trend Scraper" tool with the same keywords.
         
-        Focus on products with:
-        - High engagement (10k+ views/saves)
-        - Recent posts (last 30 days)
-        - Clear product visuals
-        - Lightweight (under 5kg estimated)
+        3. IMPORTANT: When calling tools, pass a SINGLE dictionary object like:
+           {"keywords": ["home gadgets", "beauty products"], "max_videos": 3}
         
-        Return top 5 trending products with complete data.
+        4. For each product found:
+           - Extract product name and description
+           - Get engagement metrics (views, likes, shares, saves)
+           - Get video/pin URLs
+           - Estimate product category
+        
+        5. Focus on products with:
+           - High engagement (10k+ views/saves)
+           - Recent posts (last 30 days)
+           - Clear product visuals
+           - Lightweight (under 5kg estimated)
+        
+        6. Return top 5 trending products with complete data.
         """,
         agent=create_trend_scout_agent(),
         expected_output="""

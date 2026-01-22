@@ -160,8 +160,6 @@ def create_workflow_crew():
     )
     
     return crew
-
-
 def create_pricing_strategist_task(context):
     """Helper task for pricing strategy"""
     from tasks.scraping_tasks import create_pricing_strategist_agent
@@ -203,12 +201,81 @@ def create_pricing_strategist_task(context):
 
 
 def save_results_to_database(results: Dict[str, Any], db: ProductDatabase):
-    """Save workflow results to database"""
-    # This would parse the crew results and create WinningProduct objects
-    # For now, we'll save raw results
-    print(f"\nSaving results to database...")
-    # Implementation would go here to parse results and create WinningProduct instances
-    print(f"Results saved to {db.db_path}")
+    """Save workflow results to database and files"""
+    from datetime import datetime
+    import sqlite3
+    from uuid import uuid4
+    
+    print(f"\nSaving results to database and files...")
+    
+    # Convertir les résultats en string pour sauvegarde
+    if isinstance(results, dict):
+        result_text = results.get('raw', str(results))
+        result_dict = results
+    else:
+        result_text = str(results)
+        result_dict = {"raw_output": result_text}
+    
+    # 1. Sauvegarder dans un fichier JSON avec timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_file = Path(settings.OUTPUT_DIR) / f"results_{timestamp}.json"
+    json_file.parent.mkdir(exist_ok=True)
+    
+    with open(json_file, "w", encoding="utf-8") as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "results": result_dict if isinstance(results, dict) else {"output": result_text}
+        }, f, indent=2, default=str, ensure_ascii=False)
+    
+    print(f"  -> JSON saved: {json_file}")
+    
+    # 2. Sauvegarder dans un fichier texte lisible
+    txt_file = Path(settings.OUTPUT_DIR) / f"results_{timestamp}.txt"
+    with open(txt_file, "w", encoding="utf-8") as f:
+        f.write("=" * 80 + "\n")
+        f.write(f"WORKFLOW RESULTS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("=" * 80 + "\n\n")
+        f.write(result_text)
+        f.write("\n\n" + "=" * 80 + "\n")
+    
+    print(f"  -> Text file saved: {txt_file}")
+    
+    # 3. Sauvegarder le dernier résultat (écrase le précédent)
+    last_file = Path(settings.OUTPUT_DIR) / "last_results.txt"
+    with open(last_file, "w", encoding="utf-8") as f:
+        f.write(result_text)
+    print(f"  -> Last results saved: {last_file}")
+    
+    # 4. Sauvegarder dans la base de données
+    try:
+        conn = sqlite3.connect(db.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO products (id, name, category, data, overall_score, is_approved, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            str(uuid4()),
+            f"Workflow Run - {timestamp}",
+            "other",
+            json.dumps({
+                "timestamp": datetime.now().isoformat(),
+                "raw_results": result_text,
+                "results_dict": result_dict if isinstance(results, dict) else None
+            }, default=str),
+            0.0,
+            1 if "approved" in result_text.lower() else 0,
+            datetime.now().isoformat()
+        ))
+        
+        conn.commit()
+        conn.close()
+        print(f"  -> Database saved: {db.db_path}")
+    except Exception as e:
+        print(f"  -> Error saving to database: {e}")
+    
+    print(f"\nResults saved to: {settings.OUTPUT_DIR}/")
+    print(f"Database: {db.db_path}")
 
 
 def main():
@@ -236,12 +303,36 @@ def main():
         print("Workflow completed successfully!")
         print("=" * 70)
         
+                # Extraire les résultats de toutes les tâches même si la dernière a échoué
+        result_text = str(results)
+        if "LLM returned an empty response" in result_text or not result_text.strip() or result_text == "None":
+            print("\n[WARNING] Final output is empty. Extracting results from individual tasks...")
+            all_task_results = {}
+            # Récupérer les résultats des tâches depuis le crew
+            if hasattr(crew, 'tasks'):
+                for i, task in enumerate(crew.tasks):
+                    task_name = task.description[:80] if hasattr(task, 'description') and task.description else f"Task {i+1}"
+                    if hasattr(task, 'output') and task.output:
+                        all_task_results[task_name] = str(task.output)
+            
+            if all_task_results:
+                result_text = "WORKFLOW RESULTS (extracted from tasks):\n\n"
+                for task_name, task_output in all_task_results.items():
+                    result_text += f"{'='*80}\n{task_name}\n{'='*80}\n{task_output}\n\n"
+                results = {"raw": result_text, "tasks": all_task_results, "final_output_empty": True}
+            else:
+                result_text = "Workflow executed but final output is empty. All tasks completed - check console output above for details."
+                results = {"raw": result_text, "final_output_empty": True}
+        
         # Save results
         save_results_to_database(results, db)
         
-                # Print summary
-        print(f"\nResults saved to: {settings.OUTPUT_DIR}/")
-        print(f"Database: {db.db_path}")
+        # Print summary
+        print(f"\n" + "=" * 70)
+        print(f"All results saved successfully!")
+        print(f"Check: {settings.OUTPUT_DIR}/last_results.txt for quick access")
+        print(f"Check: {settings.OUTPUT_DIR}/results_*.json for detailed JSON")
+        print("=" * 70)
         
         return results
         
