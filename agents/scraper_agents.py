@@ -46,7 +46,24 @@ def create_pricing_strategist_agent():
         You calculate total costs (product + shipping), analyze competitor prices, 
         and determine the optimal retail price that maximizes profit while remaining 
         attractive to customers. You ensure minimum 30% profit margins and account 
-        for geographic pricing variations (US vs EU markets have different pricing power).""",
+        for geographic pricing variations (US vs EU markets have different pricing power).
+        
+        IMPORTANT: You MUST use the actual data from previous tasks:
+        - Supplier prices and shipping costs from AliExpress sourcing task
+        - Competitor prices from Amazon pricing task
+        - Calculate real numbers, not placeholders
+        
+        For each product, you will:
+        1. Extract supplier price and shipping cost from AliExpress data
+        2. Calculate total cost (supplier price + shipping)
+        3. Analyze competitor price range from Amazon data
+        4. Determine optimal retail price (competitive but with 30%+ margin)
+        5. Calculate profit margin percentage
+        6. Calculate profit amount per unit
+        7. Consider geographic pricing variations if applicable
+        
+        Return detailed pricing strategy with actual calculated numbers for each product.
+        """,
         tools=[],
         llm=get_ollama_llm(),
         verbose=True,

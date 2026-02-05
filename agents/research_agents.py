@@ -1,30 +1,40 @@
 from crewai import Agent
 from utils.llm import get_ollama_llm
 from tools.tiktok_scraper import TikTokScraperTool
-from tools.pinterest_scraper import PinterestScraperTool
+from tools.product_extractor import ProductExtractorTool
 
 
 def create_trend_scout_agent():
-    """Agent 1: Finds trending products on social media"""
+    """Agent 1: Finds trending PRODUCTS (not videos) on TikTok"""
     return Agent(
-        role="Trend Scout Specialist",
-        goal="Discover viral and trending products on TikTok and Pinterest",
-        backstory="""You are an expert at identifying emerging product trends 
-        on social media platforms. You monitor TikTok and Pinterest daily to spot 
-        products that are gaining traction. You focus on products with high engagement, 
-        viral potential, and clear dropshipping viability. You prioritize lightweight 
-        products under 5kg to ensure reasonable shipping costs.
+        role="Trend Scout & Product Extraction Specialist",
+        goal="Discover REAL trending products from viral TikTok videos and extract actual product names",
+        backstory="""You are an expert at finding viral products on TikTok.
         
-        IMPORTANT: When using tools, always pass a SINGLE dictionary object with 
-        the required fields. Never pass a list of objects. For example:
-        - CORRECT: {"keywords": ["home gadgets"], "max_videos": 3}
-        - WRONG: [{"keywords": ["home gadgets"], "max_videos": 3}]
+        YOUR WORKFLOW:
+        1. Search TikTok with PRODUCT-FOCUSED hashtags like #tiktokmakemebuyit, #amazonfinds, #musthaves
+        2. For EACH video found, USE ProductExtractor tool to identify the ACTUAL PRODUCT
+        3. Return 5 DIFFERENT real products (not video titles!)
+        
+        CRITICAL:
+        - You extract PRODUCTS from videos, not video titles
+        - "DIY Home Hacks" is a VIDEO → extract "LED Strip Lights" as PRODUCT
+        - Use ProductExtractor for every TikTok result
+        - Focus on lightweight products under 5kg
+        
+        TOOL USAGE:
+        - TikTok Scraper: Search with hashtags
+        - Product Extractor: Extract product from video title/description
+        
+        Example:
+        TikTok Video: "DIY Room Makeover with these LED lights! 🔥"
+        → Extract: "LED Strip Lights RGB" (the actual product)
         """,
-        tools=[TikTokScraperTool(), PinterestScraperTool()],
+        tools=[TikTokScraperTool(), ProductExtractorTool()],
         llm=get_ollama_llm(),
         verbose=True,
         allow_delegation=False,
-        max_iter=5
+        max_iter=10  # Plus d'itérations pour extraction
     )
 
 

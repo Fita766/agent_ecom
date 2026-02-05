@@ -55,12 +55,24 @@ class AliExpressScraperTool(BaseTool):
                         title_elem = item.find("a", {"class": re.compile("title")})
                         rating_elem = item.find("span", {"class": re.compile("rating")})
                         orders_elem = item.find("span", {"class": re.compile("order")})
+                        img_elem = item.find("img")
+
+                        product_url = ""
+                        if title_elem and title_elem.get("href"):
+                            href = title_elem.get("href")
+                            if href.startswith("//"):
+                                product_url = f"https:{href}"
+                            elif not href.startswith("http"):
+                                product_url = f"https://www.aliexpress.com{href}"
+                            else:
+                                product_url = href
 
                         results.append(
                             {
                                 "platform": "AliExpress",
                                 "product_name": title_elem.get_text(strip=True) if title_elem else product_name,
-                                "product_url": title_elem.get("href", "") if title_elem else "",
+                                "product_url": product_url,
+                                "image_url": img_elem.get("src") if img_elem else "",
                                 "price": float(re.sub(r"[^\d.]", "", price_elem.get_text())) if price_elem else 0.0,
                                 "rating": float(rating_elem.get_text(strip=True)) if rating_elem else 0.0,
                                 "total_orders": orders_elem.get_text(strip=True) if orders_elem else "0",
@@ -79,7 +91,8 @@ class AliExpressScraperTool(BaseTool):
                         {
                             "platform": "AliExpress",
                             "product_name": product_name,
-                            "product_url": "https://www.aliexpress.com/item/mock.html",
+                            "product_url": "https://www.aliexpress.com/item/1005001234567890.html",
+                            "image_url": "https://ae01.alicdn.com/kf/H1234567890.jpg",
                             "price": 12.99,
                             "rating": 4.5,
                             "total_orders": "500+",

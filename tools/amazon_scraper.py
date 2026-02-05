@@ -43,18 +43,30 @@ class AmazonScraperTool(BaseTool):
 
                 for item in items:
                     try:
-                        title = item.find("h2", {"class": "s-line-clamp-2"})
-                        price = item.find("span", {"class": "a-price-whole"})
-                        rating = item.find("span", {"class": "a-icon-alt"})
-                        reviews = item.find("span", {"class": "a-size-base"})
+                        title_elem = item.find("h2", {"class": "s-line-clamp-2"})
+                        link_elem = title_elem.find("a") if title_elem else item.find("a", {"class": "a-link-normal"})
+                        price_elem = item.find("span", {"class": "a-price-whole"})
+                        rating_elem = item.find("span", {"class": "a-icon-alt"})
+                        reviews_elem = item.find("span", {"class": "a-size-base"})
+                        img_elem = item.find("img", {"class": "s-image"})
+
+                        product_url = ""
+                        if link_elem and link_elem.get("href"):
+                            href = link_elem.get("href")
+                            if href.startswith("http"):
+                                product_url = href
+                            else:
+                                product_url = f"https://www.amazon.com{href}"
 
                         results.append(
                             {
                                 "platform": "Amazon",
-                                "product_name": title.get_text(strip=True) if title else product_name,
-                                "price": float(re.sub(r"[^\d.]", "", price.get_text())) if price else 0.0,
-                                "rating": float(re.findall(r"\d+\.\d+", rating.get_text())[0]) if rating else 0.0,
-                                "total_reviews": re.sub(r"[^\d]", "", reviews.get_text()) if reviews else "0",
+                                "product_name": title_elem.get_text(strip=True) if title_elem else product_name,
+                                "product_url": product_url,
+                                "image_url": img_elem.get("src") if img_elem else "",
+                                "price": float(re.sub(r"[^\d.]", "", price_elem.get_text())) if price_elem else 0.0,
+                                "rating": float(re.findall(r"\d+\.\d+", rating_elem.get_text())[0]) if rating_elem else 0.0,
+                                "total_reviews": re.sub(r"[^\d]", "", reviews_elem.get_text()) if reviews_elem else "0",
                             }
                         )
                     except Exception:

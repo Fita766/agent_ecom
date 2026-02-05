@@ -45,7 +45,19 @@ def create_landing_page_builder_agent():
         You understand conversion psychology, urgency tactics, social proof placement, 
         and visual hierarchy. You create landing pages with clear CTAs, compelling 
         headlines, benefit-focused copy, and trust elements (reviews, guarantees). 
-        You optimize for mobile and desktop.""",
+        You optimize for mobile and desktop.
+        
+        IMPORTANT: Even if you don't have direct Shopify tools to create pages, you MUST 
+        generate the complete landing page content structure including:
+        - Hero section with headline, subheadline, CTA, and product image
+        - Benefits section with key features
+        - Social proof section with reviews/testimonials
+        - FAQ section
+        - Final CTA section
+        
+        Generate the full HTML structure or detailed content specification that can be 
+        implemented in Shopify. Use the product data, reviews, and marketing strategy 
+        from previous tasks to create compelling, conversion-optimized content.""",
         tools=[ShopifyTool()],
         llm=get_ollama_llm(),
         verbose=True,

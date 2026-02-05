@@ -29,6 +29,12 @@ from agents.shopify_agents import (
     create_landing_page_builder_agent,
     create_seo_optimizer_agent
 )
+from agents.marketing_agents import (
+    create_marketing_strategy_agent,
+    create_tiktok_ads_agent,
+    create_google_ads_agent,
+    create_facebook_ads_agent
+)
 from agents.management_agents import (
     create_project_manager_agent,
     create_report_generator_agent
@@ -56,6 +62,12 @@ from tasks.shopify_tasks import (
     create_product_page_task,
     create_landing_page_task,
     create_seo_optimization_task
+)
+from tasks.marketing_tasks import (
+    create_marketing_strategy_task,
+    create_tiktok_ads_campaign_task,
+    create_google_ads_campaign_task,
+    create_facebook_ads_campaign_task
 )
 from tasks.reporting_tasks import create_final_report_task
 from utils.database import ProductDatabase
@@ -87,7 +99,8 @@ def create_workflow_crew():
     duplicate_task = create_duplicate_check_task([trend_task])
     
     # Phase 5: Pricing Strategy (depends on supplier data)
-    pricing_task = create_pricing_strategist_task([aliexpress_task, amazon_task])
+    from tasks.scraping_tasks import create_pricing_strategy_task
+    pricing_task = create_pricing_strategy_task([aliexpress_task, amazon_task])
     
     # Phase 6: Decision & Scoring (depends on all analysis)
     scoring_task = create_product_scoring_task([
@@ -106,13 +119,29 @@ def create_workflow_crew():
     landing_page_task = create_landing_page_task([decision_task, product_page_task])
     seo_task = create_seo_optimization_task([product_page_task])
     
-    # Phase 8: Reporting
+    # Phase 8: Marketing Strategy & Campaigns (depends on product pages and reviews)
+    marketing_strategy_task = create_marketing_strategy_task([
+        decision_task, review_task, scoring_task, 
+        product_page_task, market_task
+    ])
+    tiktok_ads_task = create_tiktok_ads_campaign_task([
+        decision_task, marketing_strategy_task, trend_task
+    ])
+    google_ads_task = create_google_ads_campaign_task([
+        decision_task, marketing_strategy_task, seo_task
+    ])
+    facebook_ads_task = create_facebook_ads_campaign_task([
+        decision_task, marketing_strategy_task, product_page_task
+    ])
+    
+    # Phase 9: Reporting
     report_task = create_final_report_task([
         trend_task, market_task, competitor_task,
         aliexpress_task, amazon_task, review_task,
         trend_validation_task, duplicate_task,
         scoring_task, decision_task,
-        theme_task, product_page_task, landing_page_task, seo_task
+        theme_task, product_page_task, landing_page_task, seo_task,
+        marketing_strategy_task, tiktok_ads_task, google_ads_task, facebook_ads_task
     ])
     
     # Create crew with sequential process
@@ -133,6 +162,10 @@ def create_workflow_crew():
             create_product_page_creator_agent(),
             create_landing_page_builder_agent(),
             create_seo_optimizer_agent(),
+            create_marketing_strategy_agent(),
+            create_tiktok_ads_agent(),
+            create_google_ads_agent(),
+            create_facebook_ads_agent(),
             create_project_manager_agent(),
             create_report_generator_agent()
         ],
@@ -152,6 +185,10 @@ def create_workflow_crew():
             product_page_task,
             landing_page_task,
             seo_task,
+            marketing_strategy_task,
+            tiktok_ads_task,
+            google_ads_task,
+            facebook_ads_task,
             report_task
         ],
         process=Process.sequential,
@@ -160,44 +197,6 @@ def create_workflow_crew():
     )
     
     return crew
-def create_pricing_strategist_task(context):
-    """Helper task for pricing strategy"""
-    from tasks.scraping_tasks import create_pricing_strategist_agent
-    from crewai import Task
-    
-    return Task(
-        description="""
-        Calculate optimal pricing strategy for each product:
-        
-        1. Calculate total cost (supplier price + shipping)
-        2. Analyze competitor prices from Amazon
-        3. Determine optimal retail price with minimum 30% margin
-        4. Account for geographic pricing variations (US vs EU)
-        5. Calculate profit margin percentage
-        6. Calculate profit amount per unit
-        
-        Pricing strategy must ensure:
-        - Minimum 30% profit margin
-        - Competitive with market prices
-        - Account for shipping costs
-        - Consider geographic markets
-        
-        Return pricing strategy for each product.
-        """,
-        agent=create_pricing_strategist_agent(),
-        context=context,
-        expected_output="""
-        Pricing strategy per product:
-        - cost_price
-        - shipping_cost
-        - total_cost
-        - suggested_retail_price
-        - profit_margin_percent
-        - profit_amount
-        - competitive_price_range_min
-        - competitive_price_range_max
-        """
-    )
 
 
 def save_results_to_database(results: Dict[str, Any], db: ProductDatabase):
@@ -216,16 +215,39 @@ def save_results_to_database(results: Dict[str, Any], db: ProductDatabase):
         result_text = str(results)
         result_dict = {"raw_output": result_text}
     
-    # 1. Sauvegarder dans un fichier JSON avec timestamp
+    # 1. Sauvegarder dans un fichier JSON avec timestamp (structure complète)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     json_file = Path(settings.OUTPUT_DIR) / f"results_{timestamp}.json"
     json_file.parent.mkdir(exist_ok=True)
     
+    json_data = {
+        "timestamp": datetime.now().isoformat(),
+        "workflow_summary": {
+            "total_tasks": result_dict.get("total_tasks", 0),
+            "tasks_with_output": result_dict.get("tasks_with_output", 0),
+            "final_output_available": bool(result_dict.get("final_output"))
+        },
+        "final_output": result_dict.get("final_output", ""),
+        "task_results": {}
+    }
+    
+    # Ajouter les résultats détaillés de chaque tâche
+    if "task_details" in result_dict:
+        for task_detail in result_dict["task_details"]:
+            task_key = f"task_{task_detail['task_number']}_{task_detail['agent']}"
+            json_data["task_results"][task_key] = {
+                "task_number": task_detail["task_number"],
+                "agent": task_detail["agent"],
+                "description": task_detail["description"],
+                "output": task_detail["output"]
+            }
+    
+    # Ajouter aussi les résultats bruts pour compatibilité
+    json_data["raw_results"] = result_text
+    json_data["all_task_outputs"] = result_dict.get("tasks", {})
+    
     with open(json_file, "w", encoding="utf-8") as f:
-        json.dump({
-            "timestamp": datetime.now().isoformat(),
-            "results": result_dict if isinstance(results, dict) else {"output": result_text}
-        }, f, indent=2, default=str, ensure_ascii=False)
+        json.dump(json_data, f, indent=2, default=str, ensure_ascii=False)
     
     print(f"  -> JSON saved: {json_file}")
     
@@ -258,11 +280,7 @@ def save_results_to_database(results: Dict[str, Any], db: ProductDatabase):
             str(uuid4()),
             f"Workflow Run - {timestamp}",
             "other",
-            json.dumps({
-                "timestamp": datetime.now().isoformat(),
-                "raw_results": result_text,
-                "results_dict": result_dict if isinstance(results, dict) else None
-            }, default=str),
+            json.dumps(json_data, default=str),
             0.0,
             1 if "approved" in result_text.lower() else 0,
             datetime.now().isoformat()
@@ -276,6 +294,8 @@ def save_results_to_database(results: Dict[str, Any], db: ProductDatabase):
     
     print(f"\nResults saved to: {settings.OUTPUT_DIR}/")
     print(f"Database: {db.db_path}")
+    print(f"\n[INFO] Total tasks processed: {result_dict.get('total_tasks', 0)}")
+    print(f"[INFO] Tasks with output: {result_dict.get('tasks_with_output', 0)}")
 
 
 def main():
@@ -303,29 +323,75 @@ def main():
         print("Workflow completed successfully!")
         print("=" * 70)
         
-                # Extraire les résultats de toutes les tâches même si la dernière a échoué
-        result_text = str(results)
-        if "LLM returned an empty response" in result_text or not result_text.strip() or result_text == "None":
-            print("\n[WARNING] Final output is empty. Extracting results from individual tasks...")
-            all_task_results = {}
-            # Récupérer les résultats des tâches depuis le crew
-            if hasattr(crew, 'tasks'):
-                for i, task in enumerate(crew.tasks):
-                    task_name = task.description[:80] if hasattr(task, 'description') and task.description else f"Task {i+1}"
-                    if hasattr(task, 'output') and task.output:
-                        all_task_results[task_name] = str(task.output)
+        # TOUJOURS extraire les résultats de toutes les tâches pour créer un rapport complet
+        print("\n[INFO] Extracting results from all tasks...")
+        all_task_results = {}
+        task_details = []
+        
+        # Récupérer les résultats des tâches depuis le crew
+        if hasattr(crew, 'tasks'):
+            for i, task in enumerate(crew.tasks):
+                task_name = task.description[:100] if hasattr(task, 'description') and task.description else f"Task {i+1}"
+                task_agent = task.agent.role if hasattr(task, 'agent') and hasattr(task.agent, 'role') else "Unknown Agent"
+                
+                task_output = None
+                if hasattr(task, 'output') and task.output:
+                    task_output = str(task.output)
+                elif hasattr(task, 'result') and task.result:
+                    task_output = str(task.result)
+                
+                if task_output:
+                    all_task_results[f"Task_{i+1}_{task_agent}"] = task_output
+                    task_details.append({
+                        "task_number": i + 1,
+                        "agent": task_agent,
+                        "description": task_name,
+                        "output": task_output
+                    })
+        
+        # Créer un rapport complet avec tous les résultats
+        final_output = str(results) if results else ""
+        
+        # Construire le rapport complet
+        report_text = "=" * 80 + "\n"
+        report_text += "WORKFLOW COMPLETE REPORT\n"
+        report_text += "=" * 80 + "\n\n"
+        
+        # Ajouter le résultat final si disponible
+        if final_output and final_output.strip() and final_output != "None":
+            report_text += "FINAL WORKFLOW OUTPUT:\n"
+            report_text += "-" * 80 + "\n"
+            report_text += final_output + "\n\n"
+        
+        # Ajouter tous les résultats des tâches
+        if task_details:
+            report_text += "=" * 80 + "\n"
+            report_text += "DETAILED TASK RESULTS\n"
+            report_text += "=" * 80 + "\n\n"
             
-            if all_task_results:
-                result_text = "WORKFLOW RESULTS (extracted from tasks):\n\n"
-                for task_name, task_output in all_task_results.items():
-                    result_text += f"{'='*80}\n{task_name}\n{'='*80}\n{task_output}\n\n"
-                results = {"raw": result_text, "tasks": all_task_results, "final_output_empty": True}
-            else:
-                result_text = "Workflow executed but final output is empty. All tasks completed - check console output above for details."
-                results = {"raw": result_text, "final_output_empty": True}
+            for task_detail in task_details:
+                report_text += f"\n{'='*80}\n"
+                report_text += f"TASK {task_detail['task_number']}: {task_detail['agent']}\n"
+                report_text += f"{'='*80}\n"
+                report_text += f"Description: {task_detail['description']}\n"
+                report_text += f"{'-'*80}\n"
+                report_text += f"Output:\n{task_detail['output']}\n"
+                report_text += f"\n{'='*80}\n\n"
+        else:
+            report_text += "\n[WARNING] No task outputs found. Check console logs above.\n\n"
+        
+        # Créer la structure de résultats complète
+        results_dict = {
+            "raw": report_text,
+            "final_output": final_output,
+            "tasks": all_task_results,
+            "task_details": task_details,
+            "total_tasks": len(task_details),
+            "tasks_with_output": len([t for t in task_details if t.get('output')])
+        }
         
         # Save results
-        save_results_to_database(results, db)
+        save_results_to_database(results_dict, db)
         
         # Print summary
         print(f"\n" + "=" * 70)

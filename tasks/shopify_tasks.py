@@ -89,32 +89,58 @@ def create_landing_page_task(context):
         description="""
         Build custom landing page for approved products:
         
-        1. Create compelling headline
-        2. Write benefit-focused copy
-        3. Add social proof (reviews, testimonials)
+        IMPORTANT: You MUST generate the complete landing page content even if you cannot 
+        directly create it in Shopify. Generate the full content structure that can be 
+        implemented.
+        
+        1. Create compelling headline (use marketing strategy from previous tasks)
+        2. Write benefit-focused copy (leverage product reviews and key selling points)
+        3. Add social proof (extract from review analysis - use actual pros and testimonials)
         4. Include urgency elements (limited time, stock)
-        5. Design clear CTAs (Buy Now buttons)
+        5. Design clear CTAs (Buy Now buttons with compelling copy)
         6. Add trust elements (guarantees, secure checkout badges)
         7. Optimize for mobile and desktop
         8. Structure content with visual hierarchy
         
-        Landing page elements:
-        - Hero section with product image
-        - Benefits section
-        - Social proof section
-        - FAQ section
-        - Final CTA section
+        Landing page elements to create:
+        - Hero section: headline, subheadline, CTA button, product image URL
+        - Benefits section: key features and benefits (from product analysis)
+        - Social proof section: reviews/testimonials (from review analysis)
+        - FAQ section: address common objections (from review analysis)
+        - Final CTA section: strong closing with urgency
         
-        Return landing page details.
+        Use data from:
+        - Product reviews (pros, cons, customer feedback)
+        - Marketing strategy (messaging, value proposition)
+        - Product scores (strengths to emphasize)
+        - Pricing strategy (price positioning)
+        
+        Return complete landing page content structure with all sections detailed.
         """,
         agent=create_landing_page_builder_agent(),
         context=context,
         expected_output="""
-        Landing page creation:
-        - landing_page_url
-        - landing_page_created (boolean)
-        - sections_created (list)
-        - conversion_elements_added (list)
+        Landing page content structure:
+        - landing_page_url (if created in Shopify, otherwise "to_be_created")
+        - hero_section:
+          - headline
+          - subheadline
+          - cta_button_text
+          - product_image_url
+        - benefits_section:
+          - headline
+          - benefits_list (with icons/descriptions)
+        - social_proof_section:
+          - headline
+          - reviews/testimonials (extracted from review analysis)
+        - faq_section:
+          - questions_and_answers (list)
+        - final_cta_section:
+          - headline
+          - subheadline
+          - cta_button_text
+          - urgency_elements
+        - full_content_html (optional, if you can generate HTML structure)
         """
     )
 

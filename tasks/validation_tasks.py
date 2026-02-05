@@ -89,24 +89,38 @@ def create_duplicate_check_task(context):
         description="""
         Check if product candidates already exist in our database:
         
-        1. Compare product names using fuzzy matching
-        2. Check product images for visual similarity
-        3. Compare product specifications
+        IMPORTANT: Extract product names from the previous tasks in the context.
+        Look for the "product_name" field in the outputs of Task 1 (Trend Discovery).
+        
+        1. For EACH product from Task 1, extract the product_name
+        2. Use the DuplicateCheckerTool to check each product name
+        3. Compare product names using fuzzy matching (threshold 0.8)
         4. Determine similarity score (0-1)
         5. Flag duplicates if similarity >= 0.8
         
-        Use the ProductDatabase to check existing products.
-        If duplicate found, mark product and provide existing product ID.
+        Steps:
+        - Review the context from Task 1 (trend_task) to get all product names
+        - For each product name, call the DuplicateCheckerTool
+        - Return results for ALL products, not just one
         
-        Return duplicate check results for each product.
+        If no duplicates found, return is_duplicate: false for each product.
+        If duplicate found, provide existing_product_id and similarity_score.
+        
+        Return duplicate check results for EACH product in JSON format.
         """,
         agent=create_duplicate_checker_agent(),
         context=context,
         expected_output="""
-        Duplicate check per product:
-        - is_duplicate (boolean)
-        - existing_product_id (if duplicate found)
-        - similarity_score (0-1)
-        - reason (explanation)
+        JSON array with duplicate check per product:
+        [
+          {
+            "product_name": "Product Name",
+            "is_duplicate": false,
+            "existing_product_id": null,
+            "similarity_score": 0.0,
+            "reason": "No duplicate found"
+          },
+          ...
+        ]
         """
     )
